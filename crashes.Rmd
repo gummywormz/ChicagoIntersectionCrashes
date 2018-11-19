@@ -1,0 +1,39 @@
+---
+title: "Crashes in the City of Chicago"
+author: "Paul Alves"
+date: "November 16, 2018"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,message = FALSE)
+#import libraries
+library(tidyverse)
+library(sf)
+```
+The topic of investigation are intersection crashes in the city of Chicago. The idea was to try and see which areas may have large clusters of crashes. The city of Chicago provides a comprehensive data set on crashes including locations and conditions regarding the crash such as where it occurred or how many fatalities took place. I decided to look at crashes involving intersections. I also decided to look at incidents where the road was either wet or dry. This was to determine if certain roadways were more dangerous during wet weather rather than during dry weather.
+
+```{r}
+#download the crash data set if it doesnt exist
+#its 378.5 MB approximately
+destfile <- "./data/Crashes.geojson"
+if (!file.exists(destfile))
+{
+  download.file("https://data.cityofchicago.org/api/geospatial/85ca-t3if?method=export&format=GeoJSON",destfile,method = "auto")
+}
+#read data
+chi_bounds <- st_read("./data/Boundaries.geojson")
+crashes <- st_read(destfile)
+#filter data
+crashes_wet <- filter(crashes,roadway_surface_cond == "WET", intersection_related_i == "Y", injuries_fatal != 0)
+
+crashes_dry <- filter(crashes,roadway_surface_cond == "DRY", intersection_related_i == "Y", injuries_fatal != 0)
+
+#plot it
+#bit of a hot mess trying to get the legend to work
+#colors need to be defined in aes
+#the guide needs to be overidden as well.
+ggplot(chi_bounds ) + geom_sf() + geom_sf(data = crashes_dry, mapping = aes(color = "Dry"), show.legend = TRUE, alpha = 0.6) + ggtitle("Fatal Crashes in Chicago at Intersections") + geom_sf(data = crashes_wet, mapping = aes(color = "Wet"),show.legend = "point",alpha = 0.6 ) + scale_color_manual(values = c("Wet" = "blue", "Dry" = "red","Chicago" = "green")) + guides(color = guide_legend(title="Crash Type")) 
+```
+
+The map is interesting in its production. First, no crashes occurred in the same place twice. The location of the crashes do not seem to be centered in one certain area. There are about three crashes clustered near the Garfield Ridge neighborhood. There were only five crashes where the road was wet. Most of the data was generally on the south side of Chicago. The downtown area did not have many crashes available as well. West Englewood and Englewood tended to have higher amounts of intersection crashes as well. The overall general conclusion that can be drawn from this data is that the southern side of the city needs to invest more in traffic control systems. These systems may fail more often or are simply under placed in the southern areas. The lack of crashes during wet road conditions is surprising. More information is needed to determine if the data was during a dry year or if less accidents occur at intersections in wet weather. 
